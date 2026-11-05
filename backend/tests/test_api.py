@@ -149,3 +149,9 @@ def test_private_storage_signed_urls_and_failure_handling(client, monkeypatch):
     with pytest.raises(HTTPException) as error:
         put_image(photo())
     assert error.value.status_code == 503
+
+
+def test_modern_supabase_key_uses_apikey_header_only(client, monkeypatch):
+    from app.media import supabase_headers
+    monkeypatch.setattr(settings(), 'supabase_secret_key', 'sb_secret_test_only')
+    assert supabase_headers() == {'apikey': 'sb_secret_test_only'}

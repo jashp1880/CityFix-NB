@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     jwt_secret: str = ''
     frontend_origins: str = 'http://localhost:5173'
     supabase_url: str = ''
+    supabase_secret_key: str = ''
     supabase_service_role_key: str = ''
     storage_endpoint: str = ''
     storage_region: str = 'auto'
@@ -18,6 +19,10 @@ class Settings(BaseSettings):
     gemini_api_key: str = ''
     gemini_model: str = 'gemini-2.5-flash'
     max_upload_bytes: int = 5 * 1024 * 1024
+
+    @property
+    def supabase_key(self):
+        return self.supabase_secret_key or self.supabase_service_role_key
 
     @property
     def origins(self):

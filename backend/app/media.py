@@ -45,10 +45,10 @@ def client():
 def put_image(data):
     key = f'reports/{uuid.uuid4().hex}.jpg'
     s = settings()
-    if s.supabase_url and s.supabase_service_role_key and s.storage_bucket:
+    if s.supabase_url and s.supabase_key and s.storage_bucket:
         try:
             response = httpx.post(f'{s.supabase_url}/storage/v1/object/{s.storage_bucket}/{key}', content=data,
-                headers={'Authorization':f'Bearer {s.supabase_service_role_key}', 'Content-Type':'image/jpeg'}, timeout=20)
+                headers=supabase_headers() | {'Content-Type':'image/jpeg'}, timeout=20)
             response.raise_for_status()
         except httpx.HTTPError:
             raise HTTPException(503, 'Photo storage is temporarily unavailable. Try again later.')
@@ -68,10 +68,10 @@ def put_image(data):
 
 def image_url(key):
     s = settings()
-    if s.supabase_url and s.supabase_service_role_key and s.storage_bucket:
+    if s.supabase_url and s.supabase_key and s.storage_bucket:
         try:
             response = httpx.post(f'{s.supabase_url}/storage/v1/object/sign/{s.storage_bucket}/{key}',
-                headers={'Authorization':f'Bearer {s.supabase_service_role_key}'}, json={'expiresIn':300}, timeout=10)
+                headers=supabase_headers(), json={'expiresIn':300}, timeout=10)
             response.raise_for_status()
             return s.supabase_url + '/storage/v1' + response.json()['signedURL']
         except (httpx.HTTPError, KeyError):
@@ -79,3 +79,11 @@ def image_url(key):
     if settings().storage_bucket:
         return client().generate_presigned_url('get_object', Params={'Bucket': settings().storage_bucket, 'Key': key}, ExpiresIn=300)
     return f'/dev-media/{key}'
+
+
+def supabase_headers():
+    key = settings().supabase_key
+    headers = {'apikey': key}
+    if not key.startswith('sb_secret_'):
+        headers['Authorization'] = f'Bearer {key}'
+    return headers
