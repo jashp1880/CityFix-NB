@@ -62,7 +62,7 @@ Set `TEST_DATABASE_URL` to a disposable PostgreSQL database to run the API suite
 4. Alternatively configure a private S3-compatible bucket with `STORAGE_ENDPOINT`, `STORAGE_REGION`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY`, `STORAGE_BUCKET`. Give the key only PutObject/GetObject access for the `reports/` prefix. Do not use local disk in production.
 5. Deploy `frontend/` to Vercel (Vite, `npm ci`, `npm run build`, output `dist`). The `/api/:path*` rewrite in `frontend/vercel.json` targets the provisioned `https://cityfix-nb-api.onrender.com/:path*`. Keep Vite's default `/api` base. A same-origin rewrite keeps session cookies first-party; directly calling an unrelated Render origin can fail in browsers that block third-party cookies. If you fork this project, update the rewrite to your actual backend URL.
 6. Set `FRONTEND_ORIGINS` to the exact Vercel production origin. For local development or approved previews add explicit comma-separated origins. Wildcard credentials/origins are not allowed. The browser must send `X-CityFix: 1` on writes.
-7. Optional AI: set `GEMINI_API_KEY` on Render from a **free-tier-only** Google AI project; `GEMINI_MODEL` defaults to `gemini-2.5-flash`. Do not enable billing without owner approval. No AI provider account or paid usage is automatically provisioned.
+7. Optional AI: set `GEMINI_API_KEY` on Render from a **free-tier-only** Google AI project; `GEMINI_MODEL` defaults to `gemini-3.5-flash-lite`. Do not enable billing without owner approval. No AI provider account or paid usage is automatically provisioned.
 8. After registration and independent verification of the owner, run `python -m app.admin owner@example.com` in a trusted backend console to grant admin access. Do not grant it based solely on an unverified signup email.
 9. Verify `/health`, register/login, photo submission/storage, map filters, personal dashboard, admin status history, logout revocation and the actual AI provider through the public URLs before announcing deployment complete.
 
@@ -82,4 +82,5 @@ API documentation: `/docs`. Health/configuration availability: `/health` (no cre
 ## Secrets
 
 `.env`, `.vercel/`, local databases, uploads, virtual environments and build artifacts are ignored. `.env.example` files contain variable names only. Never commit a JWT secret, database password, provider key or service-role key. Use provider environment-variable controls and rotate any accidentally exposed value immediately.
+
 

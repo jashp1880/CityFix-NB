@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import json
+import logging
 import math
 import secrets
 import time
@@ -337,11 +338,13 @@ async def suggest(db: DB, user: USER, image: UploadFile = File(), consent: bool 
             response = await client.post(f'https://generativelanguage.googleapis.com/v1beta/models/{s.gemini_model}:generateContent',
                 headers={'x-goog-api-key': s.gemini_api_key}, json={'contents':[{'parts':[{'text':prompt},
                     {'inline_data':{'mime_type':'image/jpeg','data':base64.b64encode(data).decode()}}]}],
-                    'generationConfig':{'responseMimeType':'application/json','temperature':0.2,'maxOutputTokens':700}})
+                    'generationConfig':{'responseMimeType':'application/json','temperature':0.2,'maxOutputTokens':2048}})
             response.raise_for_status()
         parsed = Suggestion.model_validate(json.loads(response.json()['candidates'][0]['content']['parts'][0]['text']))
         return parsed.model_dump() | {'requires_confirmation': True, 'provider': 'Google Gemini'}
-    except (httpx.HTTPError, KeyError, IndexError, ValueError):
+    except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
+        status_code = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None
+        logging.getLogger('cityfix.ai').warning('AI suggestion failed: %s, provider status=%s', type(exc).__name__, status_code)
         raise HTTPException(503, 'AI assistance is unavailable. Please enter the details manually.')
 
 

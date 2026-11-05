@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     storage_access_key: str = ''
     storage_secret_key: str = ''
     gemini_api_key: str = ''
-    gemini_model: str = 'gemini-2.5-flash'
+    gemini_model: str = 'gemini-3.5-flash-lite'
     max_upload_bytes: int = 5 * 1024 * 1024
 
     @property
@@ -32,3 +32,4 @@ class Settings(BaseSettings):
 @lru_cache
 def settings():
     return Settings()
+
