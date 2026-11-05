@@ -155,3 +155,22 @@ def test_modern_supabase_key_uses_apikey_header_only(client, monkeypatch):
     from app.media import supabase_headers
     monkeypatch.setattr(settings(), 'supabase_secret_key', 'sb_secret_test_only')
     assert supabase_headers() == {'apikey': 'sb_secret_test_only'}
+
+
+def test_ai_retries_transient_failure_on_fallback(client, account, monkeypatch):
+    import httpx
+    monkeypatch.setattr(settings(), 'gemini_api_key', 'test-only-key')
+    calls=[]
+    class Provider:
+        async def __aenter__(self): return self
+        async def __aexit__(self,*args): pass
+        async def post(self,url,**kwargs):
+            calls.append(url)
+            if len(calls)==1:
+                return httpx.Response(503, request=httpx.Request('POST',url))
+            return httpx.Response(200, request=httpx.Request('POST',url),json={'candidates':[{'content':{'parts':[{'text':json.dumps({'category':'other','severity':'low','title':'Review needed','description':'No clear maintenance issue is visible.'})}]}}]})
+    monkeypatch.setattr('app.main.httpx.AsyncClient',lambda **kwargs:Provider())
+    result=client.post('/ai/suggest',data={'consent':'true'},files={'image':('a.jpg',photo(),'image/jpeg')})
+    assert result.status_code == 200
+    assert len(calls)==2 and calls[0] != calls[1]
+    assert result.json()['requires_confirmation'] is True

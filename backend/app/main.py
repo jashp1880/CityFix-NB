@@ -334,12 +334,17 @@ async def suggest(db: DB, user: USER, image: UploadFile = File(), consent: bool 
         'severity (low, medium, high), title (3-120 chars), description (10-4000 chars). '
         'Use other if no clear issue. Make cautious suggestions for human review.')
     try:
-        async with httpx.AsyncClient(timeout=45) as client:
-            response = await client.post(f'https://generativelanguage.googleapis.com/v1beta/models/{s.gemini_model}:generateContent',
-                headers={'x-goog-api-key': s.gemini_api_key}, json={'contents':[{'parts':[{'text':prompt},
-                    {'inline_data':{'mime_type':'image/jpeg','data':base64.b64encode(data).decode()}}]}],
-                    'generationConfig':{'responseMimeType':'application/json','temperature':0.2,'maxOutputTokens':2048}})
-            response.raise_for_status()
+        models = list(dict.fromkeys(model for model in [s.gemini_model, s.gemini_fallback_model] if model))
+        async with httpx.AsyncClient(timeout=25) as client:
+            for index, model in enumerate(models):
+                response = await client.post(f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
+                    headers={'x-goog-api-key': s.gemini_api_key}, json={'contents':[{'parts':[{'text':prompt},
+                        {'inline_data':{'mime_type':'image/jpeg','data':base64.b64encode(data).decode()}}]}],
+                        'generationConfig':{'responseMimeType':'application/json','temperature':0.2,'maxOutputTokens':2048}})
+                if response.status_code in {429, 500, 502, 503, 504} and index + 1 < len(models):
+                    continue
+                response.raise_for_status()
+                break
         parsed = Suggestion.model_validate(json.loads(response.json()['candidates'][0]['content']['parts'][0]['text']))
         return parsed.model_dump() | {'requires_confirmation': True, 'provider': 'Google Gemini'}
     except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:

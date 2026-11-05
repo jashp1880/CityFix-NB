@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     storage_secret_key: str = ''
     gemini_api_key: str = ''
     gemini_model: str = 'gemini-3.5-flash-lite'
+    gemini_fallback_model: str = 'gemini-3.6-flash'
     max_upload_bytes: int = 5 * 1024 * 1024
 
     @property
