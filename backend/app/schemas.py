@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class Category(str, Enum):
@@ -32,10 +32,16 @@ class Jurisdiction(str, Enum):
 
 
 class Register(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
     email: EmailStr
     name: str = Field(min_length=2, max_length=80)
     password: str = Field(min_length=12, max_length=128)
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, value):
+        if len(value.strip()) < 2:
+            raise ValueError('Name must contain at least two characters.')
+        return value.strip()
 
 
 class Login(BaseModel):

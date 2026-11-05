@@ -155,7 +155,8 @@ def login_cookie(user, db, response):
 @app.get('/health')
 def health(db: DB):
     db.execute(select(1))
-    return {'status': 'ok', 'storage_configured': bool(s.storage_bucket), 'ai_configured': bool(s.gemini_api_key)}
+    storage_ready = bool(s.storage_bucket and ((s.supabase_url and s.supabase_service_role_key) or (s.storage_access_key and s.storage_secret_key)))
+    return {'status': 'ok', 'storage_configured': storage_ready, 'ai_configured': bool(s.gemini_api_key)}
 
 
 @app.post('/auth/register', status_code=201)

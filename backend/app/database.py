@@ -8,7 +8,8 @@ if url.startswith('postgres://'):
     url = url.replace('postgres://', 'postgresql+psycopg://', 1)
 elif url.startswith('postgresql://'):
     url = url.replace('postgresql://', 'postgresql+psycopg://', 1)
-engine = create_engine(url, pool_pre_ping=True, connect_args={'check_same_thread': False} if url.startswith('sqlite') else {})
+connect_args = {'check_same_thread': False} if url.startswith('sqlite') else ({'sslmode': 'require'} if settings().environment == 'production' else {})
+engine = create_engine(url, pool_pre_ping=True, connect_args=connect_args)
 SessionLocal = sessionmaker(engine, expire_on_commit=False)
 
 

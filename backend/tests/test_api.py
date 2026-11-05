@@ -121,3 +121,31 @@ def test_pagination_cors_auth_and_rate_limit(client):
     for _ in range(12):
         assert client.post('/auth/login',json={'email':'nobody@example.com','password':'wrong'}).status_code == 401
     assert client.post('/auth/login',json={'email':'nobody@example.com','password':'wrong'}).status_code == 429
+
+
+def test_private_storage_signed_urls_and_failure_handling(client, monkeypatch):
+    import httpx
+    from app.media import put_image, image_url
+    from fastapi import HTTPException
+    import pytest
+    monkeypatch.setattr(settings(), 'supabase_url', 'https://storage.example.com')
+    monkeypatch.setattr(settings(), 'supabase_service_role_key', 'test-only-secret')
+    monkeypatch.setattr(settings(), 'storage_bucket', 'cityfix-reports')
+    calls=[]
+    def post(url, **kwargs):
+        calls.append((url, kwargs))
+        return httpx.Response(200, request=httpx.Request('POST',url), json={'signedURL':'/object/sign/cityfix-reports/test.jpg?token=short-lived'})
+    monkeypatch.setattr('app.media.httpx.post', post)
+    key=put_image(photo())
+    assert key.startswith('reports/') and key.endswith('.jpg')
+    assert calls[0][1]['headers']['Content-Type'] == 'image/jpeg'
+    assert calls[0][1]['headers']['Authorization'] == 'Bearer test-only-secret'
+    url=image_url(key)
+    assert '/object/sign/' in url and '/object/public/' not in url
+    assert calls[-1][1]['json']['expiresIn'] == 300
+    def fail(*args, **kwargs):
+        raise httpx.ConnectError('unavailable')
+    monkeypatch.setattr('app.media.httpx.post', fail)
+    with pytest.raises(HTTPException) as error:
+        put_image(photo())
+    assert error.value.status_code == 503

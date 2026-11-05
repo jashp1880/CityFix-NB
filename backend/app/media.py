@@ -19,11 +19,13 @@ async def clean_image(file: UploadFile):
         with Image.open(io.BytesIO(data)) as original:
             if original.format not in {'JPEG', 'PNG', 'WEBP'}:
                 raise ValueError('Unsupported image')
+            if original.width * original.height > Image.MAX_IMAGE_PIXELS:
+                raise ValueError('Image exceeds pixel limit')
             original.load()
             photo = ImageOps.exif_transpose(original).convert('RGB')
             photo.thumbnail((1600, 1600))
             small = photo.resize((9, 8)).convert('L')
-            pixels = list(small.getdata())
+            pixels = list(small.get_flattened_data())
             bits = ''.join('1' if pixels[y * 9 + x] > pixels[y * 9 + x + 1] else '0' for y in range(8) for x in range(8))
             visual = f'{int(bits, 2):016x}'
             output = io.BytesIO()
