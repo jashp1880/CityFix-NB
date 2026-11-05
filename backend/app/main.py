@@ -340,7 +340,13 @@ async def suggest(db: DB, user: USER, image: UploadFile = File(), consent: bool 
                 response = await client.post(f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
                     headers={'x-goog-api-key': s.gemini_api_key}, json={'contents':[{'parts':[{'text':prompt},
                         {'inline_data':{'mime_type':'image/jpeg','data':base64.b64encode(data).decode()}}]}],
-                        'generationConfig':{'responseMimeType':'application/json','temperature':0.2,'maxOutputTokens':2048}})
+                        'generationConfig':{'responseMimeType':'application/json','temperature':0.2,'maxOutputTokens':2048,
+                            'responseSchema':{'type':'OBJECT','properties':{
+                                'category':{'type':'STRING','enum':[value.value for value in Category]},
+                                'severity':{'type':'STRING','enum':[value.value for value in Severity]},
+                                'title':{'type':'STRING','description':'Short report title, 3 to 120 characters.'},
+                                'description':{'type':'STRING','description':'Cautious description of visible conditions, 10 to 4000 characters.'}},
+                                'required':['category','severity','title','description']}}})
                 if response.status_code in {429, 500, 502, 503, 504} and index + 1 < len(models):
                     continue
                 response.raise_for_status()

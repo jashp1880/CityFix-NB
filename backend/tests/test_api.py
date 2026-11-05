@@ -104,6 +104,9 @@ def test_ai_suggestion_parsed_not_submitted(client, account, monkeypatch):
         async def __aexit__(self,*args): pass
         async def post(self,url,**kwargs):
             assert kwargs['json']['contents'][0]['parts'][1]['inline_data']['mime_type'] == 'image/jpeg'
+            schema=kwargs['json']['generationConfig']['responseSchema']
+            assert set(schema['required']) == {'category','severity','title','description'}
+            assert schema['properties']['severity']['enum'] == ['low','medium','high']
             return httpx.Response(200,request=httpx.Request('POST',url),json={'candidates':[{'content':{'parts':[{'text':json.dumps({'category':'road','severity':'medium','title':'Possible pothole','description':'A road surface defect is visible.'})}]}}]})
     monkeypatch.setattr('app.main.httpx.AsyncClient',lambda **kwargs:Provider())
     result=client.post('/ai/suggest',data={'consent':'true'},files={'image':('a.jpg',photo(),'image/jpeg')})
